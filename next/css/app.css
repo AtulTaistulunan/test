@@ -128,3 +128,25 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
   .kgrid{grid-template-columns:1fr}.qidx{grid-template-columns:repeat(6,1fr)}}
 @media(prefers-reduced-motion:no-preference){nav{transition:transform .15s}}
 main:focus{outline:none}
+
+/* Phase 2：概念、學者、搜尋 */
+.hit{outline:3px solid var(--brand);outline-offset:2px;background:var(--brand-soft)!important;transition:background .3s}
+.cmap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
+.crow{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:8px 14px;border-top:1px solid var(--border)}.crow:first-child{border-top:0}
+.clink{background:none;border:0;padding:6px 0;min-height:44px;font:inherit;font-weight:600;color:var(--text);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:4px}
+.clink:hover{color:var(--brand)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.chip{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 10px;border:1px solid var(--border);border-radius:99px;font-size:13px;text-decoration:none;color:var(--brand);background:var(--surface);font-variant-numeric:tabular-nums}
+.chip:hover{border-color:var(--brand);background:var(--brand-soft)}
+.none{color:var(--text2);font-size:13px}
+.clist a{display:block;padding:4px 0;color:var(--text2);text-decoration:none;font-size:13px;line-height:1.5}.clist a:hover{color:var(--brand)}
+details.tu>summary{cursor:pointer;list-style:none}details.tu>summary::-webkit-details-marker{display:none}
+details.tu>summary::before{content:"▸";color:var(--text2);width:1em}details.tu[open]>summary::before{content:"▾"}
+.tc{margin:4px 0 10px 22px;border-left:2px solid var(--border);padding-left:12px}
+.trow{display:flex;gap:12px;align-items:center;min-height:40px;padding:4px 8px;text-decoration:none;color:inherit;border-radius:6px}.trow:hover{background:var(--brand-soft)}
+.trow span:first-child{flex:1;min-width:0}.trow .n{color:var(--text2);font-size:13px;white-space:nowrap}
+.schgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.sch h3{margin:0 0 6px;font-size:18px}.sch .en{font-family:Inter,sans-serif;font-weight:400;color:var(--text2);font-size:14px;margin-left:10px}
+.sch p{margin:8px 0;font-size:15px;line-height:1.7}.sch .chips{margin:8px 0 0}.sch details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--brand);font-size:14px}
+@media(max-width:760px){.chips{margin-left:0;width:100%}.schgrid{grid-template-columns:1fr}}
+#schsub{min-height:44px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;max-width:100%}

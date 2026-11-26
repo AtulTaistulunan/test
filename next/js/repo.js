@@ -10,3 +10,7 @@ export async function loadUnit(id) {
 export function tree() { // 考科 → 群組 → 單元
   return index.subjects.map(s => { const groups = []; for (const u of index.units.filter(u => u.subject === s.id)) { let g = groups.find(g => g.name === u.group); if (!g) groups.push(g = { name: u.group, units: [] }); g.units.push(u); } return { ...s, groups }; });
 }
+let extra = {};
+const once = (k, url) => extra[k] || (extra[k] = fetch(url).then(r => { if (!r.ok) throw new Error('讀取失敗：' + url); return r.json(); }));
+export const loadScholars = () => once('s', 'data/scholars.json').then(d => d.scholars);
+export const loadSearch = () => once('q', 'data/search.json');

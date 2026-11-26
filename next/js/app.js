@@ -5,7 +5,7 @@ import { unitStatus } from './mastery.js';
 const $ = (s, r = document) => r.querySelector(s);
 const E = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const NAV = [['dash', '學習總覽'], ['notes', '知識筆記'], ['tree', '知識探索'], ['practice', '章節練習'], ['compose', '自訂組卷', 'Phase 4'], ['mock', '模擬測驗', 'Phase 4'],
-  ['recall', '主動回憶'], ['wrong', '錯題與收藏'], ['scholar', '學者索引', 'Phase 2'], ['cram', '考前重點']];
+  ['recall', '主動回憶'], ['wrong', '錯題與收藏'], ['scholar', '學者索引'], ['cram', '考前重點']];
 const NAMES = Object.fromEntries(NAV.map(n => [n[0], n[1]]));
 const CONF = { hi: '非常確定', mid: '不太確定', lo: '猜測作答' };
 let route = { view: 'dash', unit: null };
@@ -16,11 +16,13 @@ const main = $('#main'), aside = $('#aside'), nav = $('#nav');
 // ---------- 路由：只用 #名稱，單元代碼是穩定的 ----------
 function parse() {
   const h = location.hash.replace(/^#/, '');
-  const m = /^(notes|practice)-(.+)$/.exec(h);
-  if (m) return { view: m[1], unit: m[2] };
-  return { view: NAMES[h] ? h : 'dash', unit: null };
+  const m = /^(notes|practice)-([^~]+)(?:~(.+))?$/.exec(h);
+  if (m) return { view: m[1], unit: m[2], cid: m[3] || null };
+  return { view: NAMES[h] || h === 'search' ? h : 'dash', unit: null };
 }
-const href = (v, u) => '#' + v + (u ? '-' + u : '');
+const href = (v, u, c) => '#' + v + (u ? '-' + u : '') + (c ? '~' + c : '');
+const qchip = ([id, u]) => `<a class="chip" href="${href('practice', u)}" data-goto="${id}">${E(id)}</a>`;
+function focusConcept() { const el = route.cid && document.getElementById('k-' + route.cid); if (!el) return; el.scrollIntoView({ block: 'center' }); el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 2400); }
 
 // ---------- 共用 ----------
 function statusOf(u, unitData) {
@@ -67,6 +69,7 @@ function viewDash() {
     <div class="card stat"><b>${Math.round(n / idx.totals.questions * 100)}%</b><span>題庫完成率</span></div>
     <div class="card stat"><b>${n ? Math.round(ok / n * 100) + '%' : '—'}</b><span>作答正確率${n && n < 10 ? '（樣本少）' : ''}</span></div>
     <div class="card stat"><b>${wrong}</b><span>待訂正錯題</span></div>
+    <div class="card stat"><b>${idx.totals.concepts}</b><span>已整理概念（${idx.totals.linked} 題已連結概念）</span></div>
   </div>
   ${n ? '' : '<p class="empty" style="margin-top:16px">還沒有作答紀錄。從「章節練習」選一個單元開始，這裡就會出現你的進度。</p>'}
   <h2>繼續學習</h2>
@@ -93,9 +96,10 @@ async function viewNotes(uid) {
   <div class="meta"><span>${E(s.name)}</span><span>${E(u.group)}</span>${u.questions ? pill(statusOf(u, d)) : ''}</div>
   ${u.questions ? `<div class="tabs"><a href="${href('notes', uid)}" aria-current="page">知識筆記</a><a href="${href('practice', uid)}">練習 ${u.questions} 題</a></div>` : ''}
   <section class="notes" id="s-notes">${d.notesHtml || '<p class="empty">尚未整理。原筆記沒有這個主題的內容，可先練習題目，解析中有關鍵字與口訣。</p>'}</section>
+  ${d.concepts.length ? `<h2 id="s-map">概念與對應題目</h2><p class="meta">共 ${d.concepts.length} 個概念。點概念名稱可跳到筆記中的位置；題號可直接前往該題。沒有對應題目的概念標示「尚無對應題目」。</p><div class="cmap">${d.concepts.map(c => `<div class="crow"><button class="clink" data-jump="k-${c.id}" data-hit>${E(c.title)}</button>${c.supp ? '<span class="pill">補充</span>' : ''}<span class="chips">${c.q.length ? c.q.map(qchip).join('') : '<span class="none">尚無對應題目</span>'}</span></div>`).join('')}</div>` : ''}
   ${d.recall.length ? `<h2 id="s-recall">情境回憶考點</h2><p class="meta">先自己說出考點，再按「顯示考點」。這 ${d.recall.length} 則只有情境與考點，沒有選項。</p><div class="recall">${d.recall.map(recallCard).join('')}</div>` : ''}
   ${u.questions ? `<h2 id="s-q">對應練習題</h2><p>這個單元有 ${u.questions} 題練習題。</p><div class="actions"><a class="primary" href="${href('practice', uid)}">開始練習</a></div>` : ''}</div>`;
-  setAside(`<h6>本頁目錄</h6><p><a href="#s-notes" data-jump="s-notes">知識筆記</a>${d.recall.length ? '<br><a href="#s-recall" data-jump="s-recall">情境回憶考點</a>' : ''}${u.questions ? '<br><a href="#s-q" data-jump="s-q">對應練習題</a>' : ''}</p>${u.questions ? '<h6>掌握程度</h6><p>' + pill(statusOf(u, d)) + '</p><p style="color:var(--text2)">暫定規則：作答未滿 5 題不判定。</p>' : ''}<h6>資料來源</h6><p style="color:var(--text2)">尚未整理。內容整理自 AI 生成的筆記與題庫，標「補充」者為另外補上。</p>`);
+  setAside(`<h6>本頁目錄</h6><p><a href="#s-notes" data-jump="s-notes">知識筆記</a>${d.concepts.length ? '<br><a href="#s-map" data-jump="s-map">概念與對應題目</a>' : ''}${d.recall.length ? '<br><a href="#s-recall" data-jump="s-recall">情境回憶考點</a>' : ''}${u.questions ? '<br><a href="#s-q" data-jump="s-q">對應練習題</a>' : ''}</p>${u.questions ? '<h6>掌握程度</h6><p>' + pill(statusOf(u, d)) + '</p><p style="color:var(--text2)">暫定規則：作答未滿 5 題不判定。</p>' : ''}${d.concepts.length ? `<h6>本單元概念（${d.concepts.length}）</h6><p class="clist">${d.concepts.map(c => `<a href="${href('notes', uid, c.id)}" data-jump="k-${c.id}" data-hit>${E(c.title)}</a>`).join('')}</p>` : ''}<h6>資料來源</h6><p style="color:var(--text2)">尚未整理。內容整理自 AI 生成的筆記與題庫，標「補充」者為另外補上。</p>`);
 }
 function recallCard(r) { return `<div class="rc"><span class="rid">${E(r.id)}${r.flagged ? '<span class="flag">易錯</span>' : ''}</span><div>${r.situation}</div><button class="ghost" data-reveal>顯示考點</button><div class="ansr" hidden>${r.concept}${r.tip ? `<div class="diag"><mark>${r.tip}</mark></div>` : ''}</div></div>`; }
 async function viewRecall() {
@@ -124,7 +128,7 @@ async function viewPractice(uid) {
   if (shown) {
     const ok = quiz.sel === q.ans, c = quiz.conf;
     const d2 = !quiz.done ? '' : ok ? (c === 'hi' ? '答對且有把握。' : c ? '答對但信心不高：這個概念可能還不穩定。' : '') : (c === 'hi' ? '很確定卻答錯：可能有迷思概念，建議回頭看筆記。這只是單次作答的提示。' : c ? '答錯且信心不高：可能是知識不足。' : '');
-    h += `<div class="expl"><h3>${quiz.done ? (ok ? '✓ 答對了' : '✗ 答錯了') + '　' : ''}題庫答案：${q.ans}</h3>${q.expl.map(([l, t]) => `<p><span class="el">${E(l)}</span>${t}</p>`).join('')}${d2 ? `<div class="diag">${d2}</div>` : ''}<div class="diag">逐選項解析：尚未整理</div></div>
+    h += `<div class="expl"><h3>${quiz.done ? (ok ? '✓ 答對了' : '✗ 答錯了') + '　' : ''}題庫答案：${q.ans}</h3>${q.expl.map(([l, t]) => `<p><span class="el">${E(l)}</span>${t}</p>`).join('')}<p><span class="el">相關概念</span>${q.c.length ? q.c.map(([c, cu, t]) => `<a href="${href('notes', cu, c)}">${E(t)}</a>`).join('、') : '尚未整理'}</p>${d2 ? `<div class="diag">${d2}</div>` : ''}<div class="diag">逐選項解析：尚未整理</div></div>
     <div class="actions"><a class="ghost" href="${href('notes', uid)}">回到知識筆記</a><button class="ghost" id="bm" aria-pressed="${store.isBookmarked(q.id)}">${store.isBookmarked(q.id) ? '★ 已收藏' : '☆ 收藏'}</button>${quiz.i > 0 ? '<button class="ghost" id="prevq">上一題</button>' : ''}${quiz.i < qs.length - 1 ? '<button class="primary" id="nextq">下一題</button>' : '<a class="primary" href="#dash">完成，回學習總覽</a>'}</div>`;
   }
   const idxHtml = `<div class="qidx">${qs.map((x, i) => { const l = store.lastOf(x.id); return `<button data-i="${i}"${i === quiz.i ? ' aria-current="true"' : ''} class="${l ? (l.ok ? 'r' : 'w') : ''}" aria-label="第 ${i + 1} 題${l ? (l.ok ? '，已答對' : '，已答錯') : '，未作答'}">${i + 1}${l ? (l.ok ? '✓' : '✗') : ''}</button>`; }).join('')}</div>`;
@@ -147,20 +151,59 @@ async function viewWrong() {
 }
 function viewTree() {
   crumb(['知識探索']); setAside('');
-  let h = '<div class="wide"><h1>知識探索</h1><p class="meta">目前提供階層式知識樹；比較矩陣、心智圖與時間軸排在 Phase 3。</p><div class="actions" style="margin:0 0 12px"><button class="ghost" id="exp">全部展開</button><button class="ghost" id="col">全部收合</button></div><div class="card" id="treebox">';
+  let h = '<div class="wide"><h1>知識探索</h1><p class="meta">階層式知識樹：考科 → 範疇 → 單元 → 概念。展開單元可看到概念與對應題數；比較矩陣、心智圖與時間軸排在 Phase 3。</p><div class="actions" style="margin:0 0 12px"><button class="ghost" id="exp">全部展開</button><button class="ghost" id="col">全部收合</button></div><div class="card" id="treebox">';
   for (const s of repo.tree()) {
     const tot = s.groups.reduce((n, g) => n + g.units.reduce((m, u) => m + u.questions, 0), 0);
     h += `<details open><summary style="cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:18px"><b>${E(s.name)}</b><span class="pill" style="margin-left:auto">${tot} 題</span></summary>`;
     for (const g of s.groups) {
       const us = g.units.filter(u => !filter || u.title.includes(filter) || g.name.includes(filter)); if (!us.length) continue;
       h += `<details${filter ? ' open' : ''} style="margin-left:16px"><summary style="cursor:pointer;min-height:44px;display:flex;align-items:center"><b>${E(g.name)}</b><span class="pill" style="margin-left:auto">${us.reduce((m, u) => m + u.questions, 0)} 題</span></summary><div class="ulist" style="margin:4px 0 10px 16px">` +
-        us.map(u => `<a class="urow" href="${href('notes', u.id)}"><b>${E(u.title)}</b>${u.questions ? pill(statusOf(u)) : ''}<span class="n">${u.questions ? u.questions + ' 題' : '—'}</span></a>`).join('') + '</div></details>';
+        us.map(u => `<details class="tu" data-u="${u.id}"><summary class="urow"><b>${E(u.title)}</b>${u.questions ? pill(statusOf(u)) : ''}<span class="n">${u.concepts} 概念・${u.questions ? u.questions + ' 題' : '無題目'}</span></summary><div class="tc">載入中…</div></details>`).join('') + '</div></details>';
     }
     h += '</details>';
   }
   main.innerHTML = h + '</div></div>';
-  $('#exp').onclick = () => main.querySelectorAll('details').forEach(d => d.open = true);
+  $('#exp').onclick = () => main.querySelectorAll('details:not(.tu)').forEach(d => d.open = true);
+  main.querySelectorAll('.tu').forEach(el => el.addEventListener('toggle', async () => {
+    if (!el.open || el.dataset.done) return; el.dataset.done = 1; const u = el.dataset.u, box = el.querySelector('.tc');
+    try { const d = await repo.loadUnit(u);
+      box.innerHTML = (d.concepts.length ? d.concepts.map(c => `<a class="trow" href="${href('notes', u, c.id)}"><span>${E(c.title)}</span><span class="n">${c.q.length ? c.q.length + ' 題' : '尚無對應題目'}</span></a>`).join('') : '<p class="empty">這個單元尚未整理出概念。</p>') +
+        `<div class="actions"><a class="ghost" href="${href('notes', u)}">閱讀筆記</a>${d.questions.length ? `<a class="ghost" href="${href('practice', u)}">練習 ${d.questions.length} 題</a>` : ''}</div>`;
+    } catch (e) { box.textContent = '載入失敗，請重新整理。'; el.dataset.done = ''; }
+  }));
   $('#col').onclick = () => main.querySelectorAll('#treebox details details').forEach(d => d.open = false);
+}
+let schSub = '';
+async function viewScholar() {
+  crumb(['學者索引']); setAside('');
+  const all = await repo.loadScholars(), subs = repo.getIndex().subjects, f = filter.toLowerCase();
+  const list = all.filter(s => (!schSub || s.subjects.includes(schSub)) && (!f || [s.name, ...(s.alts || []), s.en || ''].some(x => x.toLowerCase().includes(f))));
+  const um = id => repo.unitMeta(id);
+  main.innerHTML = `<div class="wide"><h1>學者索引</h1>
+  <p class="meta">只列出筆記與題庫中實際出現的學者，依相關題數排序。外文姓名取自題庫中的寫法；生平、年代與學派關係尚未整理。</p>
+  <div class="actions" style="margin:0 0 14px"><label>考科　<select id="schsub"><option value="">全部</option>${subs.map(s => `<option value="${s.id}"${schSub === s.id ? ' selected' : ''}>${E(s.name)}</option>`).join('')}</select></label><span class="n" style="color:var(--text2)">${list.length} / ${all.length} 位${filter ? '（搜尋：' + E(filter) + '）' : ''}</span></div>
+  ${list.length ? '<div class="schgrid">' + list.map(s => `<div class="card sch" id="${s.id}"><h3>${E(s.name)}${s.en ? `<span class="en">${E(s.en)}</span>` : ''}</h3>
+    ${s.alts.length ? `<p class="diag">題庫中另寫作：${s.alts.map(E).join('、')}</p>` : ''}${s.note ? `<p class="diag">⚠ ${E(s.note)}</p>` : ''}
+    <p><span class="el">筆記單元</span>${s.units.length ? s.units.map(u => `<a href="${href('notes', u)}">${E(um(u).title)}</a>`).join('、') : '筆記中未提到'}</p>
+    <p><span class="el">相關概念</span>${s.concepts.length ? s.concepts.map(([u, c, t]) => `<a href="${href('notes', u, c)}">${E(t)}</a>`).join('、') : '尚未整理'}</p>
+    <p><span class="el">相關題目</span>${s.questions.length ? s.questions.length + ' 題' : '無'}</p>
+    ${s.questions.length ? (s.questions.length > 12 ? `<details><summary>顯示題號</summary><div class="chips">${s.questions.map(qchip).join('')}</div></details>` : `<div class="chips">${s.questions.map(qchip).join('')}</div>`) : ''}</div>`).join('') + '</div>' : '<p class="empty">找不到符合的學者。</p>'}</div>`;
+  $('#schsub').onchange = function () { schSub = this.value; render(); };
+}
+async function viewSearch() {
+  crumb(['搜尋']); setAside('');
+  const q = filter.toLowerCase();
+  if (!q) { main.innerHTML = '<div class="wrap"><h1>搜尋</h1><p class="empty">在上方搜尋框輸入關鍵字，可搜尋單元、概念、學者與題目。</p></div>'; return; }
+  const [sx, sch] = await Promise.all([repo.loadSearch(), repo.loadScholars()]);
+  if (q !== filter.toLowerCase()) return;
+  const hit = s => s.toLowerCase().includes(q), um = id => repo.unitMeta(id), cut = (a, n) => a.slice(0, n);
+  const us = repo.getIndex().units.filter(u => hit(u.title) || hit(u.group)), cs = sx.concepts.filter(c => hit(c[2])), ss = sch.filter(s => [s.name, ...s.alts, s.en || ''].some(hit)), qs = sx.questions.filter(x => hit(x[0]) || hit(x[2]) || hit(x[3]));
+  const sec = (t, n, body, lim) => `<h2>${t}（${n}）</h2>${n ? body + (n > lim ? `<p class="diag">只顯示前 ${lim} 筆，請輸入更精確的關鍵字。</p>` : '') : '<p class="empty">沒有符合的結果。</p>'}`;
+  main.innerHTML = `<div class="wrap"><h1>搜尋：${E(filter)}</h1><p class="meta">搜尋範圍：單元名稱、概念名稱、學者姓名、題號與題幹。</p>` +
+    sec('單元', us.length, '<div class="ulist">' + cut(us, 20).map(u => `<a class="urow" href="${href('notes', u.id)}"><b>${E(u.title)}</b><span class="n">${E(u.group)}</span></a>`).join('') + '</div>', 20) +
+    sec('概念', cs.length, '<div class="ulist">' + cut(cs, 30).map(c => `<a class="urow" href="${href('notes', c[1], c[0])}"><b>${E(c[2])}</b><span class="n">${E(um(c[1]).title)}</span></a>`).join('') + '</div>', 30) +
+    sec('學者', ss.length, '<div class="ulist">' + cut(ss, 20).map(s => `<a class="urow" href="#scholar" data-sch="${s.id}"><b>${E(s.name)}${s.en ? '　' + E(s.en) : ''}</b><span class="n">${s.questions.length} 題</span></a>`).join('') + '</div>', 20) +
+    sec('題目', qs.length, '<div class="card">' + cut(qs, 30).map(x => `<div class="wq"><b>${E(x[0])}</b>　${E(x[3].slice(0, 80))}…<small>${E(um(x[1]).title)}｜<a href="${href('practice', x[1])}" data-goto="${x[0]}">前往這一題</a></small></div>`).join('') + '</div>', 30) + '</div>';
 }
 function later(v) { crumb([NAMES[v]]); setAside(''); main.innerHTML = `<div class="wrap"><h1>${NAMES[v]}</h1><p class="empty">這個功能排在 ${NAV.find(n => n[0] === v)[2]}，尚未開放。</p></div>`; }
 
@@ -176,6 +219,8 @@ async function render() {
     else if (view === 'recall') await viewRecall();
     else if (view === 'wrong') await viewWrong();
     else if (view === 'tree') viewTree();
+    else if (view === 'scholar') await viewScholar();
+    else if (view === 'search') await viewSearch();
     else later(view);
   } catch (e) { main.innerHTML = `<div class="wrap"><h1>載入失敗</h1><p class="empty">${E(e.message)}。請確認網路後重新整理。</p></div>`; setAside(''); }
 }
@@ -184,7 +229,8 @@ async function render() {
 document.addEventListener('click', async e => {
   const t = e.target; let x;
   if (t.id === 'menu' || t.id === 'scrim') { const mob = matchMedia('(max-width:760px)').matches; document.body.classList.toggle(mob ? 'navopen' : 'navclosed'); $('#menu').setAttribute('aria-expanded', mob ? document.body.classList.contains('navopen') : !document.body.classList.contains('navclosed')); return; }
-  if (x = t.closest('[data-jump]')) { e.preventDefault(); document.getElementById(x.dataset.jump)?.scrollIntoView(); return; }
+  if (x = t.closest('[data-jump]')) { e.preventDefault(); const el = document.getElementById(x.dataset.jump); if (el) { el.scrollIntoView({ block: x.dataset.hit !== undefined ? 'center' : 'start' }); if (x.dataset.hit !== undefined) { el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 2400); } } return; }
+  if (x = t.closest('[data-sch]')) { e.preventDefault(); const id = x.dataset.sch; filter = ''; $('#search').value = ''; schSub = ''; location.hash = '#scholar'; setTimeout(() => { const el = document.getElementById(id); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 2400); } }, 250); return; }
   if (x = t.closest('[data-reveal]')) { x.hidden = true; x.nextElementSibling.hidden = false; return; }
   if (x = t.closest('[data-goto]')) { e.preventDefault(); const u = x.getAttribute('href').replace('#practice-', ''); const d = await repo.loadUnit(u); quiz = { unit: u, i: Math.max(0, d.questions.findIndex(q => q.id === x.dataset.goto)), sel: null, conf: null, done: false }; if (location.hash === href('practice', u)) render(); else location.hash = href('practice', u); return; }
   if (route.view !== 'practice' || !route.unit) return;
@@ -208,11 +254,11 @@ document.addEventListener('keydown', async e => {
   else if (e.key === 'ArrowRight') moveQ(1, d.questions.length);
   else if (e.key === 'ArrowLeft') moveQ(-1, d.questions.length);
 });
-$('#search').addEventListener('input', function () { filter = this.value.trim(); if (!['notes', 'practice', 'tree', 'cram'].includes(route.view) || route.unit) { location.hash = '#notes'; } else render(); });
+$('#search').addEventListener('input', function () { filter = this.value.trim(); if (route.view === 'scholar' || route.view === 'search') render(); else if (filter) location.hash = '#search'; else render(); });
 function applyPrefs() { const p = store.prefs(); document.documentElement.dataset.mode = p.mode; document.documentElement.style.setProperty('--fs', p.fs); $('#mode').value = p.mode; $('#fsz').value = p.fs; }
 $('#mode').onchange = function () { store.setPref('mode', this.value); applyPrefs(); };
 $('#fsz').onchange = function () { store.setPref('fs', this.value); applyPrefs(); };
-window.addEventListener('hashchange', () => { route = parse(); document.body.classList.remove('navopen'); render().then(() => { main.scrollTop = 0; main.focus({ preventScroll: true }); }); });
+window.addEventListener('hashchange', () => { route = parse(); document.body.classList.remove('navopen'); render().then(() => { main.scrollTop = 0; main.focus({ preventScroll: true }); focusConcept(); }); });
 
 applyPrefs();
-repo.loadIndex().then(() => { route = parse(); render(); }).catch(() => { main.innerHTML = '<div class="wrap"><h1>載入失敗</h1><p class="empty">無法讀取題庫索引。請確認網路後重新整理。</p></div>'; });
+repo.loadIndex().then(() => { route = parse(); return render(); }).then(focusConcept).catch(() => { main.innerHTML = '<div class="wrap"><h1>載入失敗</h1><p class="empty">無法讀取題庫索引。請確認網路後重新整理。</p></div>'; });

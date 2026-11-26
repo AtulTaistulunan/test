@@ -1,0 +1,10 @@
+/* Design Tokens：全站只從這裡取色彩、字級、間距 */
+:root{
+  --bg:#F7F8FA;--surface:#FFFFFF;--text:#243044;--text2:#68758A;--brand:#4F66C9;--brand-soft:#EEF1FF;--border:#E1E5EC;
+  --ok:#22866A;--err:#C45B55;--warn:#D5A43C;--ok-soft:#E7F4EF;--err-soft:#FAECEA;--warn-soft:#FBF3DC;--mark:#FBE9A8;
+  --font:"Inter","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --fs:17px;--lh:1.85;--r:10px;--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;
+  --nav-w:256px;--aside-w:272px;--read-w:780px;color-scheme:light}
+:root[data-mode="dark"]{--bg:#161A22;--surface:#1E232D;--text:#E6E9F0;--text2:#9AA6B8;--brand:#8E9FEA;--brand-soft:#2A3150;--border:#313846;
+  --ok:#5CC2A2;--err:#E58C86;--warn:#E3BC62;--ok-soft:#1D3A32;--err-soft:#40272A;--warn-soft:#3A3220;--mark:#5A4A12;color-scheme:dark}
+:root[data-mode="warm"]{--bg:#F6F1E7;--surface:#FCF8F0;--text:#3A3226;--text2:#75695A;--brand-soft:#E8E6F5;--border:#E2D9C8;--mark:#F6DF98}

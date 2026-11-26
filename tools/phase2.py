@@ -26,6 +26,13 @@ def refs(s):
     rs = [f'R{a}-{b}' for a, b in re.findall(r'R(\d)-(\d{1,2})', s)]
     return [q for q in dict.fromkeys(qs) if q in qunit], [r for r in dict.fromkeys(rs) if r in runit]
 
+# 欄位名稱 → 角色（只依欄位名稱分類，不改內容）：重點／做法・例子／題幹線索／易混淆；其餘欄位名稱本身就是概念名詞
+ROLES = {'core': '意義 定義 核心 重點 原則 人性觀與病理觀 核心概念與技術 對象與目標 目的 原理 內容 順序 三步驟 三個重點 一句話 依據 為什麼做 遺忘原因 影響什麼 怎麼分 會的 限制 關鍵 效果',
+         'ex': '例子 常見作法 做法 典型說法 首選調整策略 做什麼 常見字眼 適用 樣子 處理 怎麼處理',
+         'cue': '題幹關鍵字 關鍵字 題目關鍵字 代表技術與關鍵字 核心特質與題幹線索 題幹先找 判斷重點 判斷方式 高危險訊號 正確選項的特質',
+         'warn': '易混淆 注意 優先排除 迷思 另一迷思 提醒 與系統減敏感的差別 要避免的情形 警訊'}
+ROLE = {l: r for r, ls in ROLES.items() for l in ls.split()}
+def role(label, default='term'): return ROLE.get(label, default)
 report = {'unlinked': [], 'badref': []}
 allc = []
 for uid, d in units.items():
@@ -50,7 +57,9 @@ for uid, d in units.items():
         fields = []
         for kf in kc.select('.kf'):
             lab = kf.select_one('.kl'); items = [txt(x) for x in kf.select('.kline, li, .flow')]
+            kf['data-role'] = role(txt(lab) if lab else '')
             fields.append({'label': txt(lab) if lab else '', 'items': [i for i in items if i]})
+        if h.select_one('.ktag'): kc['class'] = kc.get('class', []) + ['issupp']
         add(kc, txt(hh), fields, bool(h.select_one('.ktag')), 'card')
     # 表格列、條列、段落（學習理論）
     last_rows = []
@@ -58,6 +67,12 @@ for uid, d in units.items():
         if el.find_parent(class_='kc'): continue
         if el.name == 'table':
             heads = [txt(th) for th in el.select('thead th')]; last_rows = []
+            croles = [role(clean(h), None) if i else None for i, h in enumerate(heads)]
+            for i, th in enumerate(el.select('thead th')):
+                if croles[i]: th['data-role'] = croles[i]
+            for tr in el.select('tbody tr'):
+                for i, td in enumerate(tr.find_all('td')):
+                    if i < len(croles) and croles[i]: td['data-role'] = croles[i]
             for tr in el.select('tbody tr'):
                 tds = tr.find_all('td')
                 if not tds: continue

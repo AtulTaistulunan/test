@@ -150,3 +150,30 @@ details.tu>summary::before{content:"▸";color:var(--text2);width:1em}details.tu
 .sch p{margin:8px 0;font-size:15px;line-height:1.7}.sch .chips{margin:8px 0 0}.sch details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--brand);font-size:14px}
 @media(max-width:760px){.chips{margin-left:0;width:100%}.schgrid{grid-template-columns:1fr}}
 #schsub{min-height:44px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;max-width:100%}
+
+/* 筆記層次：重點／做法・例子／題幹線索／易混淆／補充（文字標籤＋樣式，不只靠顏色） */
+.role{display:inline-block;font-size:11px;font-weight:700;border-radius:4px;padding:0 6px;line-height:1.75;letter-spacing:.04em;white-space:nowrap;vertical-align:.1em;margin-right:8px}
+.r-core{background:var(--brand);color:#fff}
+.r-ex{border:1px solid var(--border);color:var(--text2);background:var(--bg)}
+.r-cue{border:1px dashed var(--text2);color:var(--text)}
+.r-warn{border:1px solid var(--err);color:var(--err)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center;font-size:13px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin:0 0 14px}
+.legend b{color:var(--text);margin-right:10px}.legend .role,.legend .ktag{margin:0 4px 0 10px}
+.kf[data-role] .kl{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:2px}
+.kf[data-role=core]{border-left:3px solid var(--brand);padding-left:12px;margin:4px 0}
+.kf[data-role=core] .kv{font-weight:600;font-size:1.05em;color:var(--text)}
+.kf[data-role=core] .kli li,.kf[data-role=core] .flow span{background:var(--brand-soft);border-color:transparent}
+.kf[data-role=term] .kl{font-size:1em;font-weight:700;color:var(--text);letter-spacing:0}
+.kf[data-role=term] .kv{display:block;padding-left:12px;border-left:2px solid var(--border)}
+.kf[data-role=ex]{padding-left:15px}
+.kf[data-role=ex] .kv{font-size:.92em;color:var(--text2)}
+.kf[data-role=ex] .kli li{background:none}
+.kf[data-role=cue]{padding-left:15px}
+.kf[data-role=cue] .kv{font-size:.92em}
+.kf[data-role=cue] .kli li{border-style:dashed;border-radius:99px;background:none}
+.kf[data-role=warn]{background:var(--err-soft);border:0;border-radius:8px;padding:8px 12px;margin:6px 0}
+.kc.issupp{border-style:dashed;background:var(--bg)}
+.notes td[data-role=core]{font-weight:600}
+.notes td[data-role=ex],.notes td[data-role=cue]{font-size:.92em;color:var(--text2)}
+.notes td:first-child{font-weight:700}
+.notes th .role{margin:0 0 0 6px}

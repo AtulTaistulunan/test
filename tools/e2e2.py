@@ -25,11 +25,8 @@ with sync_playwright() as p:
     res['concept_after_confirm'] = '相關概念' in pg.inner_text('.expl') and pg.locator('.expl a[href*="~"]').count() >= 1
     pg.locator('.expl a[href*="~"]').first.click(); pg.wait_for_selector('.hit'); res['question_to_concept_highlight'] = pg.evaluate("(()=>{const r=document.querySelector('.hit').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight})()")
     # 未連結題目顯示「尚未整理」
-    un = json.load(open('/tmp/p2report.json'))['unlinked'][0]; uu = next(u['id'] for u in idx['units'] if any(q['id'] == un for q in json.load(open(f"{D}units/{u['id']}.json"))['questions']))
-    pg.goto(B + '#wrong'); pg.evaluate(f"location.hash='#practice-{uu}'"); pg.wait_for_selector('.opt')
-    i = [q['id'] for q in json.load(open(f"{D}units/{uu}.json"))['questions']].index(un)
-    pg.locator('aside .qidx button').nth(i).click(); pg.keyboard.press('a'); pg.keyboard.press('Enter'); pg.wait_for_selector('.expl')
-    res['unlinked_shows_placeholder'] = (un, '相關概念尚未整理' in pg.inner_text('.expl').replace('\n', '').replace(' ', ''))
+    unl = json.load(open('/tmp/p2report.json'))['unlinked']
+    res['unlinked_count'] = len(unl)   # 0 表示全部題目都有相關概念
     # 知識樹第三層
     pg.goto(B + '#tree'); pg.wait_for_selector('#exp'); pg.click('#exp'); pg.locator('details.tu[data-u="cm-m-kounin"] > summary').click(); pg.wait_for_selector('details.tu[data-u="cm-m-kounin"] .trow')
     res['tree_concepts'] = pg.locator('details.tu[data-u="cm-m-kounin"] .trow').count() == len(json.load(open(D + 'units/cm-m-kounin.json'))['concepts'])
@@ -40,7 +37,7 @@ with sync_playwright() as p:
     pg.select_option('#schsub', 'lt'); pg.wait_for_timeout(150); res['scholar_filter_subject'] = pg.locator('.sch').count() == sum('lt' in s['subjects'] for s in sch)
     pg.select_option('#schsub', ''); pg.fill('#search', '庫寧'); pg.wait_for_timeout(200); res['scholar_search'] = pg.locator('.sch').count() == 1 and 'Kounin' in pg.inner_text('.sch')
     pg.locator('.sch details summary').click(); pg.locator('.sch .chip').first.click(); pg.wait_for_selector('.qhead'); res['scholar_to_question'] = 'M0' in pg.inner_text('.qhead') or 'M1' in pg.inner_text('.qhead')
-    pg.fill('#search', ''); pg.goto(B + '#scholar'); pg.wait_for_selector('.sch'); res['scholar_variant_note'] = '譯名寫法不一致' in pg.inner_text('main') and '對應不同的外文名' in pg.inner_text('main')
+    pg.fill('#search', ''); pg.goto(B + '#scholar'); pg.wait_for_selector('.sch'); t = pg.inner_text('main'); res['scholar_keller_split'] = 'John Keller' in t and 'Fred Keller' in t and '譯名寫法不一致' not in t and '斯金納' not in t
     # 全站搜尋
     pg.goto(B + '#dash'); pg.wait_for_selector('.stat'); pg.fill('#search', '鷹架'); pg.wait_for_selector('h1:has-text("搜尋")'); pg.wait_for_selector('.wq, .empty')
     t = pg.inner_text('main'); res['search_sections'] = all(k in t for k in ['單元（', '概念（', '學者（', '題目（'])

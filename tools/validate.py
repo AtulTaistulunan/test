@@ -2,7 +2,11 @@
 import re, json, html, sys, os, glob
 OLD = sys.argv[1]; D = sys.argv[2]
 h = open(OLD, encoding='utf-8').read()
-def txt(s): return re.sub(r'\s+', '', html.unescape(re.sub(r'<[^>]+>', '', s)))
+NAMES = {'斯金納': '史金納', '杜爾文': '圖爾文', '麥肯鮑姆': '梅欽鮑姆'}   # 使用者核准的譯名統一，比對時兩邊都套用
+def txt(s):
+    s = re.sub(r'\s+', '', html.unescape(re.sub(r'<[^>]+>', '', s)))
+    for a, b in NAMES.items(): s = s.replace(a, b)
+    return s
 old = {}
 for m in re.finditer(r'<article class="q" id="q([^"]+)">(.*?)</article>', h, re.S):
     b = m.group(2); opts = {}; ans = None

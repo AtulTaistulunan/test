@@ -12,7 +12,7 @@ with sync_playwright() as p:
     # 全部單元：筆記頁可開、題數相符
     bad = []; tq = 0
     for u in idx['units']:
-        pg.goto(B + '#notes-' + u['id']); pg.wait_for_function("document.querySelector('h1') && document.querySelector('h1').textContent.length>0 && !document.querySelector('main').textContent.includes('載入中')")
+        pg.goto(B + '#notes-' + u['id']); pg.wait_for_function(f"document.querySelector('h1')?.textContent.trim()=={json.dumps(u['title'])}")
         if pg.inner_text('h1').strip() != u['title']: bad.append(('title', u['id']))
         if u['questions']:
             pg.goto(B + '#practice-' + u['id']); pg.wait_for_selector('aside .qidx')
